@@ -1,4 +1,4 @@
-package pt.grupo05.reversi_ldp_g05;
+package pt.grupo05.cliente;
 
 public class SystemInfo {
 
