@@ -31,7 +31,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.4</version>
                 <configuration>
-                    <mainClass>pt.grupo05.reversi_ldp_g05.App</mainClass>
+                  <mainClass>pt.grupo05.cliente.App</mainClass>
                 </configuration>
                 <executions>
                     <execution>
