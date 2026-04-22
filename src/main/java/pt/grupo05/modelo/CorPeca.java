@@ -1,13 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Enum.java to edit this template
- */
 package pt.grupo05.modelo;
 
 /**
- *
- * @author Yoga
+ * Representa os estados possíveis de uma casa no tabuleiro de Reversi.
  */
 public enum CorPeca {
-    
+    PRETO,
+    BRANCO,
+    VAZIO
 }
