@@ -14,47 +14,57 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
+/**
+ * Classe principal da interface gráfica do jogo Reversi.
+ * Responsável por inicializar e configurar a estrutura visual, 
+ * incluindo a grelha do tabuleiro e o painel de estado.
+ */
 public class App extends Application {
 
+    /**
+     * Inicializa o layout principal da interface do utilizador.
+     * Configura a cena, desenha as casas do tabuleiro, as peças iniciais e o painel lateral.
+     * * @param stage O contentor principal (Stage) onde a interface será apresentada
+     */
     @Override
     public void start(Stage stage) {
+        // Configuração do layout base
         HBox layoutPrincipal = new HBox(40); 
         layoutPrincipal.setPadding(new Insets(30));
         layoutPrincipal.setAlignment(Pos.CENTER);
         layoutPrincipal.setStyle("-fx-background-color: #2b2b2b;");
 
-        // --- 1. O TABULEIRO ---
+        // --- 1. GRELHA DO TABULEIRO ---
         GridPane tabuleiroVisual = new GridPane();
         
         Color corCasa = Color.DARKGREEN;
         Color corLinha = Color.BLACK;
 
+        // Iteração para desenhar as 64 casas
         for (int linha = 0; linha < 8; linha++) {
             for (int coluna = 0; coluna < 8; coluna++) {
-                // Usar StackPane para poder sobrepor peças às casas
+                // StackPane permite a sobreposição da peça sobre a casa
                 StackPane casa = new StackPane();
                 
-                // O fundo da casa (quadrado)
+                // Desenho do fundo da casa
                 Rectangle fundo = new Rectangle(60, 60);
                 fundo.setFill(corCasa);
                 fundo.setStroke(corLinha);
                 fundo.setStrokeWidth(2); 
                 
-                // Adicionar o fundo verde à casa
                 casa.getChildren().add(fundo);
                 
-                // --- COLOCAR AS 4 PEÇAS INICIAIS ---
-                // Linha 3 e 4, Coluna 3 e 4 representam o centro do tabuleiro (0 a 7)
+                // Colocação das 4 peças na posição central inicial
                 if ((linha == 3 && coluna == 3) || (linha == 4 && coluna == 4)) {
                     Circle pecaBranca = new Circle(25, Color.WHITE);
-                    casa.getChildren().add(pecaBranca); // Fica por cima do fundo
+                    casa.getChildren().add(pecaBranca);
                 } 
                 else if ((linha == 3 && coluna == 4) || (linha == 4 && coluna == 3)) {
                     Circle pecaPreta = new Circle(25, Color.BLACK);
-                    casa.getChildren().add(pecaPreta); // Fica por cima do fundo
+                    casa.getChildren().add(pecaPreta);
                 }
                 
-                // Adicionar a casa (já com fundo e possível peça) à grelha principal
+                // Adição da casa processada à grelha visual
                 tabuleiroVisual.add(casa, coluna, linha);
             }
         }
@@ -94,6 +104,10 @@ public class App extends Application {
         stage.show();
     }
 
+    /**
+     * Método principal que inicia o ciclo de vida da aplicação JavaFX.
+     * * @param args Argumentos da linha de comandos
+     */
     public static void main(String[] args) {
         launch(args);
     }

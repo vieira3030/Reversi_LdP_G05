@@ -1,41 +1,60 @@
 package pt.grupo05.modelo;
 
 /**
- * Representa um jogador no sistema Reversi.
- * Guarda o nome, a cor das peças e a pontuação atual.
+ * Representa um jogador no jogo Reversi.
+ * Mantém o registo do nome, da cor das peças e da pontuação atual.
  */
 public class Jogador {
     
-    // Atributos definidos no UML [cite: 205, 206, 207, 208]
+    // Nome do jogador.
     private String nome;
+    
+    // Cor das peças atribuídas ao jogador (PRETO ou BRANCO).
     private CorPeca cor;
+    
+    // Pontuação atual do jogador (número de peças no tabuleiro).
     private int pontuacao;
 
     /**
-     * Construtor para criar um novo jogador.
-     * @param nome Nome do jogador
-     * @param cor Cor das peças (PRETO ou BRANCO)
+     * Instancia um novo jogador com a pontuação inicial predefinida.
+     * * @param nome Nome do jogador
+     * @param cor Cor das peças atribuídas ao jogador
      */
     public Jogador(String nome, CorPeca cor) {
         this.nome = nome;
         this.cor = cor;
-        this.pontuacao = 2; // O jogo começa sempre com 2 peças para cada um [cite: 142]
+        // A pontuação inicial é sempre 2 peças.
+        this.pontuacao = 2; 
     }
 
-    // --- Métodos de Acesso (Getters e Setters) [cite: 209, 210, 211, 212, 213] ---
-
+    /**
+     * Obtém o nome do jogador.
+     * * @return O nome do jogador
+     */
     public String getNome() {
         return nome;
     }
 
+    /**
+     * Obtém a cor das peças do jogador.
+     * * @return A cor (PRETO ou BRANCO)
+     */
     public CorPeca getCor() {
         return cor;
     }
 
+    /**
+     * Obtém a pontuação atual do jogador.
+     * * @return O número de peças do jogador presentes no tabuleiro
+     */
     public int getPontuacao() {
         return pontuacao;
     }
 
+    /**
+     * Atualiza a pontuação do jogador.
+     * * @param pontuacao O novo valor da pontuação
+     */
     public void setPontuacao(int pontuacao) {
         this.pontuacao = pontuacao;
     }
