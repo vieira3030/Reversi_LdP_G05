@@ -16,45 +16,53 @@ import javafx.stage.Stage;
 
 /**
  * Classe principal da interface gráfica do jogo Reversi.
- * Responsável por inicializar e configurar a estrutura visual, 
- * incluindo a grelha do tabuleiro e o painel de estado.
+ * Gere a visualização do tabuleiro, o painel de informações e a interação com o utilizador.
  */
 public class App extends Application {
 
     /**
-     * Inicializa o layout principal da interface do utilizador.
-     * Configura a cena, desenha as casas do tabuleiro, as peças iniciais e o painel lateral.
-     * * @param stage O contentor principal (Stage) onde a interface será apresentada
+     * Inicializa e configura os componentes da interface JavaFX.
+     * Implementa a grelha de jogo, os eventos de clique e o painel de estado lateral.
+     * @param stage O contentor principal da aplicação
      */
     @Override
     public void start(Stage stage) {
-        // Configuração do layout base
+        // Contentor principal em HBox para separar o tabuleiro do painel lateral
         HBox layoutPrincipal = new HBox(40); 
         layoutPrincipal.setPadding(new Insets(30));
         layoutPrincipal.setAlignment(Pos.CENTER);
         layoutPrincipal.setStyle("-fx-background-color: #2b2b2b;");
 
-        // --- 1. GRELHA DO TABULEIRO ---
+        // --- 1. GRELHA DO TABULEIRO (8x8) ---
         GridPane tabuleiroVisual = new GridPane();
-        
         Color corCasa = Color.DARKGREEN;
         Color corLinha = Color.BLACK;
 
-        // Iteração para desenhar as 64 casas
         for (int linha = 0; linha < 8; linha++) {
             for (int coluna = 0; coluna < 8; coluna++) {
-                // StackPane permite a sobreposição da peça sobre a casa
+                // StackPane permite sobrepor as peças às casas do tabuleiro
                 StackPane casa = new StackPane();
                 
-                // Desenho do fundo da casa
+                // Desenho da casa (quadrado verde)
                 Rectangle fundo = new Rectangle(60, 60);
                 fundo.setFill(corCasa);
                 fundo.setStroke(corLinha);
                 fundo.setStrokeWidth(2); 
                 
                 casa.getChildren().add(fundo);
-                
-                // Colocação das 4 peças na posição central inicial
+
+                // --- IMPLEMENTAÇÃO DA PARTE 1: CAPTURA DE CLIQUE ---
+                // Variáveis finais necessárias para serem lidas dentro do evento Lambda
+                final int l = linha;
+                final int c = coluna;
+
+                casa.setOnMouseClicked(evento -> {
+                    // Confirmação da coordenada no terminal para testes
+                    System.out.println("Clicou na Linha " + l + ", Coluna " + c);
+                });
+                // --------------------------------------------------
+
+                // Configuração das 4 peças iniciais no centro do tabuleiro
                 if ((linha == 3 && coluna == 3) || (linha == 4 && coluna == 4)) {
                     Circle pecaBranca = new Circle(25, Color.WHITE);
                     casa.getChildren().add(pecaBranca);
@@ -64,12 +72,12 @@ public class App extends Application {
                     casa.getChildren().add(pecaPreta);
                 }
                 
-                // Adição da casa processada à grelha visual
+                // Adiciona a casa à grelha nas coordenadas correspondentes
                 tabuleiroVisual.add(casa, coluna, linha);
             }
         }
 
-        // --- 2. PAINEL DE INFORMAÇÃO ---
+        // --- 2. PAINEL DE INFORMAÇÃO LATERAL ---
         VBox painelInfo = new VBox(30);
         painelInfo.setAlignment(Pos.TOP_CENTER);
         painelInfo.setMinWidth(220);
@@ -81,6 +89,7 @@ public class App extends Application {
         vezDe.setAlignment(Pos.CENTER);
         vezDe.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-alignment: center;");
 
+        // Contentor para as pontuações
         VBox boxPontos = new VBox(15);
         boxPontos.setAlignment(Pos.CENTER);
         boxPontos.setStyle("-fx-background-color: #3c3f41; -fx-padding: 20; -fx-background-radius: 15;");
@@ -94,7 +103,7 @@ public class App extends Application {
         boxPontos.getChildren().addAll(labelPretas, labelBrancas);
         painelInfo.getChildren().addAll(titulo, vezDe, boxPontos);
 
-        // --- 3. MONTAGEM FINAL ---
+        // --- 3. MONTAGEM E EXIBIÇÃO ---
         layoutPrincipal.getChildren().addAll(tabuleiroVisual, painelInfo);
 
         Scene cena = new Scene(layoutPrincipal);
@@ -105,8 +114,8 @@ public class App extends Application {
     }
 
     /**
-     * Método principal que inicia o ciclo de vida da aplicação JavaFX.
-     * * @param args Argumentos da linha de comandos
+     * Ponto de entrada da aplicação.
+     * @param args Argumentos da linha de comandos
      */
     public static void main(String[] args) {
         launch(args);
