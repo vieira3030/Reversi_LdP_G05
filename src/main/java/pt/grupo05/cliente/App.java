@@ -6,6 +6,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -20,30 +21,33 @@ import pt.grupo05.modelo.CorPeca;
 
 public class App extends Application {
 
-    // --- VARIÁVEIS GLOBAIS ---
+    // Instância principal do jogo.
     private Jogo jogoReversi = new Jogo(); 
+    // Grelha visual do tabuleiro.
     private GridPane tabuleiroVisual; 
     
-    // Labels globais para podermos atualizar os textos mais tarde
+    // Etiquetas para o painel de informação.
     private Label vezDe;
     private Label lPretas;
     private Label lBrancas;
     
-    // Variável simples para controlar o turno visualmente (podes ligar ao teu Jogo.java depois)
-    private boolean turnoPretas = true; 
+    // Barra indicadora da ocupação do tabuleiro.
+    private ProgressBar barraProgresso;
 
     @Override
     public void start(Stage stage) {
+        // Configura o layout principal.
         HBox layoutPrincipal = new HBox(40); 
         layoutPrincipal.setPadding(new Insets(30));
         layoutPrincipal.setAlignment(Pos.CENTER);
         layoutPrincipal.setStyle("-fx-background-color: #2b2b2b;");
 
-        // --- 1. TABULEIRO ---
+        // Configura a grelha visual do tabuleiro.
         tabuleiroVisual = new GridPane();
         Color corCasa = Color.DARKGREEN;
         Color corLinha = Color.BLACK;
 
+        // Constrói as 64 casas do tabuleiro.
         for (int linha = 0; linha < 8; linha++) {
             for (int coluna = 0; coluna < 8; coluna++) {
                 StackPane casa = new StackPane();
@@ -58,14 +62,10 @@ public class App extends Application {
                 final int l = linha;
                 final int c = coluna;
 
+                // Define a ação de clique em cada casa.
                 casa.setOnMouseClicked(evento -> {
                     boolean jogadaValida = jogoReversi.jogar(c, l);
-                    
                     if (jogadaValida) {
-                        // Se a jogada for válida, troca o turno
-                        turnoPretas = !turnoPretas;
-                        
-                        // Atualiza a interface (peças, pontos e texto do turno)
                         atualizarTabuleiroVisual();
                     } else {
                         System.out.println("Jogada inválida!");
@@ -76,7 +76,7 @@ public class App extends Application {
             }
         }
 
-        // --- 2. PAINEL DE INFORMAÇÃO ---
+        // Configura o painel lateral de informação.
         VBox painelInfo = new VBox(30);
         painelInfo.setAlignment(Pos.TOP_CENTER);
         painelInfo.setMinWidth(220);
@@ -84,7 +84,6 @@ public class App extends Application {
         Label titulo = new Label("REVERSI");
         titulo.setStyle("-fx-text-fill: white; -fx-font-size: 34px; -fx-font-weight: bold;");
 
-        // Inicialização das Labels Globais
         vezDe = new Label("VEZ DAS PRETAS"); 
         vezDe.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 18px; -fx-font-weight: bold;");
 
@@ -98,27 +97,34 @@ public class App extends Application {
         lBrancas.setStyle("-fx-text-fill: white; -fx-font-size: 18px;");
 
         boxPontos.getChildren().addAll(lPretas, lBrancas);
-        painelInfo.getChildren().addAll(titulo, vezDe, boxPontos);
+
+        // Inicializa e configura a barra de progresso.
+        barraProgresso = new ProgressBar(0);
+        barraProgresso.setPrefWidth(200);
+        barraProgresso.setStyle("-fx-accent: #27ae60; -fx-control-inner-background: #3c3f41;");
+
+        // Agrupa os elementos no painel lateral.
+        painelInfo.getChildren().addAll(titulo, vezDe, boxPontos, barraProgresso);
 
         layoutPrincipal.getChildren().addAll(tabuleiroVisual, painelInfo);
 
+        // Define e mostra a cena.
         Scene cena = new Scene(layoutPrincipal);
         stage.setTitle("Reversi - Grupo 05");
         stage.setScene(cena);
         stage.setResizable(false); 
         
+        // Garante que a interface inicializa com os valores corretos.
         atualizarTabuleiroVisual();
         
         stage.show();
     }
 
     /**
-     * Lê a matriz da lógica, desenha as peças no ecrã e atualiza as pontuações.
+     * Sincroniza a interface gráfica com o estado atual da lógica do jogo.
      */
     private void atualizarTabuleiroVisual() {
-        int contagemPretas = 0;
-        int contagemBrancas = 0;
-
+        // Atualiza a representação gráfica das peças.
         for (Node node : tabuleiroVisual.getChildren()) {
             if (node instanceof StackPane) {
                 StackPane casa = (StackPane) node;
@@ -127,30 +133,31 @@ public class App extends Application {
                 if (c == null) c = 0;
                 if (l == null) l = 0;
 
-                // Limpa as peças antigas
                 casa.getChildren().removeIf(filho -> filho instanceof Circle);
 
-                // Vai buscar a peça à lógica
                 CorPeca estado = jogoReversi.getTabuleiro().getCasa(c, l);
 
-                // Desenha a peça e soma aos pontos
                 if (estado == CorPeca.BRANCO) {
                     casa.getChildren().add(new Circle(25, Color.WHITE));
-                    contagemBrancas++;
                 } else if (estado == CorPeca.PRETO) {
                     casa.getChildren().add(new Circle(25, Color.BLACK));
-                    contagemPretas++;
                 }
             }
         }
         
-        // --- 3. ATUALIZAÇÃO DO PAINEL LATERAL ---
-        // Atualiza os pontos no ecrã
-        lPretas.setText("Pretas: " + contagemPretas);
-        lBrancas.setText("Brancas: " + contagemBrancas);
+        // Obtém as pontuações atualizadas.
+        int ptsPretas = jogoReversi.getJogador1().getPontuacao();
+        int ptsBrancas = jogoReversi.getJogador2().getPontuacao();
         
-        // Atualiza a etiqueta do turno
-        if (turnoPretas) {
+        lPretas.setText("Pretas: " + ptsPretas);
+        lBrancas.setText("Brancas: " + ptsBrancas);
+        
+        // Atualiza o progresso de ocupação do tabuleiro.
+        double progresso = (ptsPretas + ptsBrancas) / 64.0;
+        barraProgresso.setProgress(progresso);
+        
+        // Atualiza a indicação visual do turno.
+        if (jogoReversi.getJogadorAtual().getCor() == CorPeca.PRETO) {
             vezDe.setText("VEZ DAS PRETAS");
         } else {
             vezDe.setText("VEZ DAS BRANCAS");
