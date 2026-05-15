@@ -22,6 +22,8 @@ import javafx.stage.Stage;
 import pt.grupo05.modelo.Jogo;
 import pt.grupo05.modelo.CorPeca;
 
+import java.util.Optional;
+
 public class App extends Application {
 
     // Instância principal da lógica do jogo.
@@ -41,19 +43,31 @@ public class App extends Application {
     public void start(Stage stage) {
         // --- MENU INICIAL (PARÂMETROS) ---
         
-        // Solicita o nome do primeiro jogador.
+        // Solicita o nome do Jogador 1 (Pretas).
         TextInputDialog dialog1 = new TextInputDialog("Jogador 1");
         dialog1.setTitle("Configuração");
         dialog1.setHeaderText("Jogador das Peças Pretas");
         dialog1.setContentText("Introduza o nome:");
-        dialog1.showAndWait().ifPresent(nome -> jogoReversi.getJogador1().setNome(nome));
+        
+        Optional<String> res1 = dialog1.showAndWait();
+        if (res1.isPresent()) {
+            jogoReversi.getJogador1().setNome(res1.get());
+        } else {
+            System.exit(0); // Encerra se o utilizador cancelar.
+        }
 
-        // Solicita o nome do segundo jogador.
+        // Solicita o nome do Jogador 2 (Brancas).
         TextInputDialog dialog2 = new TextInputDialog("Jogador 2");
         dialog2.setTitle("Configuração");
         dialog2.setHeaderText("Jogador das Peças Brancas");
         dialog2.setContentText("Introduza o nome:");
-        dialog2.showAndWait().ifPresent(nome -> jogoReversi.getJogador2().setNome(nome));
+        
+        Optional<String> res2 = dialog2.showAndWait();
+        if (res2.isPresent()) {
+            jogoReversi.getJogador2().setNome(res2.get());
+        } else {
+            System.exit(0); // Encerra se o utilizador cancelar.
+        }
 
         // Configuração do layout principal da aplicação.
         HBox layoutPrincipal = new HBox(40); 
