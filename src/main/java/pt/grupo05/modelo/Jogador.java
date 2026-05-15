@@ -17,7 +17,7 @@ public class Jogador {
 
     /**
      * Instancia um novo jogador com a pontuação inicial predefinida.
-     * * @param nome Nome do jogador
+     * @param nome Nome do jogador
      * @param cor Cor das peças atribuídas ao jogador
      */
     public Jogador(String nome, CorPeca cor) {
@@ -29,15 +29,23 @@ public class Jogador {
 
     /**
      * Obtém o nome do jogador.
-     * * @return O nome do jogador
+     * @return O nome do jogador
      */
     public String getNome() {
         return nome;
     }
 
     /**
+     * Atualiza o nome do jogador.
+     * @param nome O novo nome
+     */
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    /**
      * Obtém a cor das peças do jogador.
-     * * @return A cor (PRETO ou BRANCO)
+     * @return A cor (PRETO ou BRANCO).
      */
     public CorPeca getCor() {
         return cor;
@@ -45,7 +53,7 @@ public class Jogador {
 
     /**
      * Obtém a pontuação atual do jogador.
-     * * @return O número de peças do jogador presentes no tabuleiro
+     * @return O número de peças do jogador presentes no tabuleiro.
      */
     public int getPontuacao() {
         return pontuacao;
@@ -53,7 +61,7 @@ public class Jogador {
 
     /**
      * Atualiza a pontuação do jogador.
-     * * @param pontuacao O novo valor da pontuação
+     * @param pontuacao O novo valor da pontuação.
      */
     public void setPontuacao(int pontuacao) {
         this.pontuacao = pontuacao;
