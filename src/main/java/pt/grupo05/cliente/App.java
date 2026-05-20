@@ -7,6 +7,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextInputDialog;
@@ -22,6 +23,9 @@ import javafx.stage.Stage;
 import pt.grupo05.modelo.Jogo;
 import pt.grupo05.modelo.CorPeca;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.Optional;
 
 public class App extends Application {
@@ -140,7 +144,13 @@ public class App extends Application {
         barraProgresso.setPrefWidth(200);
         barraProgresso.setStyle("-fx-accent: #27ae60; -fx-control-inner-background: #3c3f41;");
 
-        painelInfo.getChildren().addAll(titulo, vezDe, boxPontos, barraProgresso);
+        // Botão para gravar o estado atual do jogo.
+        Button btnGravar = new Button("Gravar Jogo");
+        btnGravar.setMaxWidth(Double.MAX_VALUE);
+        btnGravar.setStyle("-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnGravar.setOnAction(evento -> gravarJogo());
+
+        painelInfo.getChildren().addAll(titulo, vezDe, boxPontos, barraProgresso, btnGravar);
         layoutPrincipal.getChildren().addAll(tabuleiroVisual, painelInfo);
 
         // Inicialização da cena e exibição da janela.
@@ -209,6 +219,31 @@ public class App extends Application {
         }
         
         aviso.showAndWait();
+    }
+
+    /**
+     * Guarda o estado atual da partida num ficheiro.
+     */
+    private void gravarJogo() {
+        // Tenta escrever o objeto do jogo num ficheiro local.
+        try (FileOutputStream fos = new FileOutputStream("reversi_save.dat");
+             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+             
+            oos.writeObject(jogoReversi);
+            
+            Alert aviso = new Alert(AlertType.INFORMATION);
+            aviso.setTitle("Gravação");
+            aviso.setHeaderText("Sucesso!");
+            aviso.setContentText("A partida foi gravada corretamente.");
+            aviso.showAndWait();
+            
+        } catch (IOException e) {
+            Alert erro = new Alert(AlertType.ERROR);
+            erro.setTitle("Erro de Gravação");
+            erro.setHeaderText("Não foi possível gravar o jogo.");
+            erro.setContentText(e.getMessage());
+            erro.showAndWait();
+        }
     }
 
     public static void main(String[] args) {

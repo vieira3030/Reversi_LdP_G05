@@ -4,7 +4,7 @@ package pt.grupo05.modelo;
  * Controla o fluxo geral do jogo Reversi.
  * Gere os turnos, a validação de jogadas e o estado da partida.
  */
-public class Jogo {
+public class Jogo implements java.io.Serializable {
     
     private Tabuleiro tabuleiro;
     private Jogador jogador1;

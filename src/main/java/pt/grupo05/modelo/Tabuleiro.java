@@ -6,7 +6,7 @@ import java.util.List;
  * Gere a grelha 8x8 do jogo Reversi.
  * Responsável por inicializar, colocar, inverter e contar as peças[cite: 171, 194].
  */
-public class Tabuleiro {
+public class Tabuleiro implements java.io.Serializable {
     
     // Matriz bidimensional que representa as 64 casas do tabuleiro[cite: 196, 222].
     private CorPeca[][] grelha;

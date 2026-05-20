@@ -4,7 +4,7 @@ package pt.grupo05.modelo;
  * Representa um jogador no jogo Reversi.
  * Mantém o registo do nome, da cor das peças e da pontuação atual.
  */
-public class Jogador {
+public class Jogador implements java.io.Serializable {
     
     // Nome do jogador.
     private String nome;
