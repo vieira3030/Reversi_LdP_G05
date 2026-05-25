@@ -24,8 +24,10 @@ import pt.grupo05.modelo.Jogo;
 import pt.grupo05.modelo.CorPeca;
 
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
 import java.util.Optional;
 
 public class App extends Application {
@@ -150,7 +152,13 @@ public class App extends Application {
         btnGravar.setStyle("-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;");
         btnGravar.setOnAction(evento -> gravarJogo());
 
-        painelInfo.getChildren().addAll(titulo, vezDe, boxPontos, barraProgresso, btnGravar);
+        // Botão para carregar um jogo guardado.
+        Button btnCarregar = new Button("Carregar Jogo");
+        btnCarregar.setMaxWidth(Double.MAX_VALUE);
+        btnCarregar.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnCarregar.setOnAction(evento -> carregarJogo());
+
+        painelInfo.getChildren().addAll(titulo, vezDe, boxPontos, barraProgresso, btnGravar, btnCarregar);
         layoutPrincipal.getChildren().addAll(tabuleiroVisual, painelInfo);
 
         // Inicialização da cena e exibição da janela.
@@ -242,6 +250,32 @@ public class App extends Application {
             erro.setTitle("Erro de Gravação");
             erro.setHeaderText("Não foi possível gravar o jogo.");
             erro.setContentText(e.getMessage());
+            erro.showAndWait();
+        }
+    }
+
+    /**
+     * Carrega o estado da partida a partir de um ficheiro.
+     */
+    private void carregarJogo() {
+        // Tenta ler o ficheiro local e repor o objeto do jogo.
+        try (FileInputStream fis = new FileInputStream("reversi_save.dat");
+             ObjectInputStream ois = new ObjectInputStream(fis)) {
+             
+            jogoReversi = (Jogo) ois.readObject(); // Substitui o jogo atual pelo gravado
+            atualizarTabuleiroVisual(); // Refresca o ecrã com as posições antigas
+            
+            Alert aviso = new Alert(AlertType.INFORMATION);
+            aviso.setTitle("Carregamento");
+            aviso.setHeaderText("Sucesso!");
+            aviso.setContentText("A partida foi retomada.");
+            aviso.showAndWait();
+            
+        } catch (Exception e) {
+            Alert erro = new Alert(AlertType.ERROR);
+            erro.setTitle("Erro de Carregamento");
+            erro.setHeaderText("Não foi possível carregar o jogo.");
+            erro.setContentText("Certifica-te que gravaste um jogo primeiro.");
             erro.showAndWait();
         }
     }
