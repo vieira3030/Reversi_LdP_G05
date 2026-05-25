@@ -8,9 +8,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -47,32 +50,64 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) {
-        // --- MENU INICIAL (PARÂMETROS) ---
+        // --- MENU INICIAL (JANELA DE CONEXÃO) ---
         
-        // Solicita o nome do Jogador 1 (Pretas).
-        TextInputDialog dialog1 = new TextInputDialog("Jogador 1");
-        dialog1.setTitle("Configuração");
-        dialog1.setHeaderText("Jogador das Peças Pretas");
-        dialog1.setContentText("Introduza o nome:");
-        
-        Optional<String> res1 = dialog1.showAndWait();
-        if (res1.isPresent()) {
-            jogoReversi.getJogador1().setNome(res1.get());
-        } else {
-            System.exit(0); // Encerra se o utilizador cancelar.
-        }
+        // Cria a caixa de diálogo personalizada para configuração da rede.
+        Dialog<String[]> dialog = new Dialog<>();
+        dialog.setTitle("REVERSI — Ligar ao Servidor");
+        dialog.setHeaderText("Configuração de Rede Local");
 
-        // Solicita o nome do Jogador 2 (Brancas).
-        TextInputDialog dialog2 = new TextInputDialog("Jogador 2");
-        dialog2.setTitle("Configuração");
-        dialog2.setHeaderText("Jogador das Peças Brancas");
-        dialog2.setContentText("Introduza o nome:");
+        // Define os botões de ação da janela.
+        ButtonType btnLigar = new ButtonType("Ligar", ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnLigar, ButtonType.CANCEL);
+
+        // Estrutura o layout dos campos de texto.
+        GridPane gridDialogo = new GridPane();
+        gridDialogo.setHgap(10);
+        gridDialogo.setVgap(10);
+        gridDialogo.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField txtNome = new TextField();
+        txtNome.setPromptText("ex: rodrigo");
         
-        Optional<String> res2 = dialog2.showAndWait();
-        if (res2.isPresent()) {
-            jogoReversi.getJogador2().setNome(res2.get());
+        TextField txtIp = new TextField();
+        txtIp.setPromptText("ex: 192.168.1.10 (ou localhost)");
+        
+        TextField txtPorta = new TextField();
+        txtPorta.setPromptText("ex: 8080");
+
+        // Adiciona os componentes visuais à grelha do diálogo.
+        gridDialogo.add(new Label("Nome do jogador:"), 0, 0);
+        gridDialogo.add(txtNome, 1, 0);
+        gridDialogo.add(new Label("IP do servidor:"), 0, 1);
+        gridDialogo.add(txtIp, 1, 1);
+        gridDialogo.add(new Label("Porta:"), 0, 2);
+        gridDialogo.add(txtPorta, 1, 2);
+
+        dialog.getDialogPane().setContent(gridDialogo);
+
+        // Converte os dados introduzidos quando o botão Ligar é clicado.
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == btnLigar) {
+                return new String[]{txtNome.getText(), txtIp.getText(), txtPorta.getText()};
+            }
+            return null;
+        });
+
+        // Processa a resposta da janela de ligação.
+        Optional<String[]> resultado = dialog.showAndWait();
+        if (resultado.isPresent()) {
+            String nome = resultado.get()[0];
+            String ip = resultado.get()[1];
+            String porta = resultado.get()[2];
+            
+            // Atribuição temporária dos nomes dos jogadores para a interface gráfica.
+            jogoReversi.getJogador1().setNome(nome + " (Local)");
+            jogoReversi.getJogador2().setNome("Adversário (Rede)");
+            
+            System.out.println("A ligar a IP: " + ip + " na porta: " + porta);
         } else {
-            System.exit(0); // Encerra se o utilizador cancelar.
+            System.exit(0); // Fecha o programa caso a janela seja cancelada.
         }
 
         // Configuração do layout principal da aplicação.
@@ -233,7 +268,6 @@ public class App extends Application {
      * Guarda o estado atual da partida num ficheiro.
      */
     private void gravarJogo() {
-        // Tenta escrever o objeto do jogo num ficheiro local.
         try (FileOutputStream fos = new FileOutputStream("reversi_save.dat");
              ObjectOutputStream oos = new ObjectOutputStream(fos)) {
              
@@ -258,12 +292,11 @@ public class App extends Application {
      * Carrega o estado da partida a partir de um ficheiro.
      */
     private void carregarJogo() {
-        // Tenta ler o ficheiro local e repor o objeto do jogo.
         try (FileInputStream fis = new FileInputStream("reversi_save.dat");
              ObjectInputStream ois = new ObjectInputStream(fis)) {
              
-            jogoReversi = (Jogo) ois.readObject(); // Substitui o jogo atual pelo gravado
-            atualizarTabuleiroVisual(); // Refresca o ecrã com as posições antigas
+            jogoReversi = (Jogo) ois.readObject();
+            atualizarTabuleiroVisual();
             
             Alert aviso = new Alert(AlertType.INFORMATION);
             aviso.setTitle("Carregamento");
