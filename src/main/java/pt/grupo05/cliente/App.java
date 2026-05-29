@@ -40,6 +40,9 @@ public class App extends Application {
     // Grelha visual para representação do tabuleiro.
     private GridPane tabuleiroVisual; 
     
+    // Gestor de comunicação em rede (Sockets).
+    private GestorRede gestorRede;
+    
     // Etiquetas de texto para o painel lateral.
     private Label vezDe;
     private Label lPretas;
@@ -52,16 +55,13 @@ public class App extends Application {
     public void start(Stage stage) {
         // --- MENU INICIAL (JANELA DE CONEXÃO) ---
         
-        // Cria a caixa de diálogo personalizada para configuração da rede.
         Dialog<String[]> dialog = new Dialog<>();
         dialog.setTitle("REVERSI — Ligar ao Servidor");
         dialog.setHeaderText("Configuração de Rede Local");
 
-        // Define os botões de ação da janela.
         ButtonType btnLigar = new ButtonType("Ligar", ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnLigar, ButtonType.CANCEL);
 
-        // Estrutura o layout dos campos de texto.
         GridPane gridDialogo = new GridPane();
         gridDialogo.setHgap(10);
         gridDialogo.setVgap(10);
@@ -76,7 +76,6 @@ public class App extends Application {
         TextField txtPorta = new TextField();
         txtPorta.setPromptText("ex: 8080");
 
-        // Adiciona os componentes visuais à grelha do diálogo.
         gridDialogo.add(new Label("Nome do jogador:"), 0, 0);
         gridDialogo.add(txtNome, 1, 0);
         gridDialogo.add(new Label("IP do servidor:"), 0, 1);
@@ -86,7 +85,6 @@ public class App extends Application {
 
         dialog.getDialogPane().setContent(gridDialogo);
 
-        // Converte os dados introduzidos quando o botão Ligar é clicado.
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == btnLigar) {
                 return new String[]{txtNome.getText(), txtIp.getText(), txtPorta.getText()};
@@ -94,29 +92,31 @@ public class App extends Application {
             return null;
         });
 
-        // Processa a resposta da janela de ligação.
         Optional<String[]> resultado = dialog.showAndWait();
         if (resultado.isPresent()) {
             String nome = resultado.get()[0];
             String ip = resultado.get()[1];
-            String porta = resultado.get()[2];
+            // Converte a porta de String para número inteiro
+            int porta = Integer.parseInt(resultado.get()[2]); 
             
-            // Atribuição temporária dos nomes dos jogadores para a interface gráfica.
-            jogoReversi.getJogador1().setNome(nome + " (Local)");
-            jogoReversi.getJogador2().setNome("Adversário (Rede)");
+            jogoReversi.getJogador1().setNome(nome + " (P1)");
+            jogoReversi.getJogador2().setNome("Adversário (P2)");
             
-            System.out.println("A ligar a IP: " + ip + " na porta: " + porta);
+            // Inicia o gestor de rede com os dados introduzidos!
+            gestorRede = new GestorRede(this);
+            gestorRede.iniciarConexao(ip, porta);
+            
         } else {
-            System.exit(0); // Fecha o programa caso a janela seja cancelada.
+            System.exit(0);
         }
 
-        // Configuração do layout principal da aplicação.
+        // --- CONFIGURAÇÃO DA INTERFACE PRINCIPAL ---
+        
         HBox layoutPrincipal = new HBox(40); 
         layoutPrincipal.setPadding(new Insets(30));
         layoutPrincipal.setAlignment(Pos.CENTER);
         layoutPrincipal.setStyle("-fx-background-color: #2b2b2b;");
 
-        // Inicialização do tabuleiro visual.
         tabuleiroVisual = new GridPane();
         Color corCasa = Color.DARKGREEN;
         Color corLinha = Color.BLACK;
@@ -135,13 +135,16 @@ public class App extends Application {
                 final int l = linha;
                 final int c = coluna;
 
-                // Gere o evento de clique nas coordenadas selecionadas.
                 casa.setOnMouseClicked(evento -> {
                     boolean jogadaValida = jogoReversi.jogar(c, l);
                     if (jogadaValida) {
                         atualizarTabuleiroVisual();
                         
-                        // Verifica se o estado do jogo passou a inativo.
+                        // Envia a jogada válida para o adversário pela rede!
+                        if (gestorRede != null) {
+                            gestorRede.enviarJogada(c, l);
+                        }
+                        
                         if (!jogoReversi.isJogoAtivo()) {
                             anunciarVencedor();
                         }
@@ -154,7 +157,6 @@ public class App extends Application {
             }
         }
 
-        // Configuração do painel lateral de informações.
         VBox painelInfo = new VBox(30);
         painelInfo.setAlignment(Pos.TOP_CENTER);
         painelInfo.setMinWidth(250);
@@ -176,18 +178,15 @@ public class App extends Application {
 
         boxPontos.getChildren().addAll(lPretas, lBrancas);
 
-        // Configuração visual da barra de progresso.
         barraProgresso = new ProgressBar(0);
         barraProgresso.setPrefWidth(200);
         barraProgresso.setStyle("-fx-accent: #27ae60; -fx-control-inner-background: #3c3f41;");
 
-        // Botão para gravar o estado atual do jogo.
         Button btnGravar = new Button("Gravar Jogo");
         btnGravar.setMaxWidth(Double.MAX_VALUE);
         btnGravar.setStyle("-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;");
         btnGravar.setOnAction(evento -> gravarJogo());
 
-        // Botão para carregar um jogo guardado.
         Button btnCarregar = new Button("Carregar Jogo");
         btnCarregar.setMaxWidth(Double.MAX_VALUE);
         btnCarregar.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-weight: bold;");
@@ -196,7 +195,6 @@ public class App extends Application {
         painelInfo.getChildren().addAll(titulo, vezDe, boxPontos, barraProgresso, btnGravar, btnCarregar);
         layoutPrincipal.getChildren().addAll(tabuleiroVisual, painelInfo);
 
-        // Inicialização da cena e exibição da janela.
         Scene cena = new Scene(layoutPrincipal);
         stage.setTitle("Reversi - Grupo 05");
         stage.setScene(cena);
@@ -206,11 +204,7 @@ public class App extends Application {
         stage.show();
     }
 
-    /**
-     * Atualiza todos os elementos visuais com base no estado da lógica.
-     */
     private void atualizarTabuleiroVisual() {
-        // Atualiza a disposição das peças na grelha.
         for (Node node : tabuleiroVisual.getChildren()) {
             if (node instanceof StackPane) {
                 StackPane casa = (StackPane) node;
@@ -230,24 +224,18 @@ public class App extends Application {
             }
         }
         
-        // Obtém dados atuais dos jogadores.
         int ptsP = jogoReversi.getJogador1().getPontuacao();
         int ptsB = jogoReversi.getJogador2().getPontuacao();
         String nomeP = jogoReversi.getJogador1().getNome();
         String nomeB = jogoReversi.getJogador2().getNome();
         
-        // Atualiza etiquetas de pontuação e turno.
         lPretas.setText(nomeP + ": " + ptsP);
         lBrancas.setText(nomeB + ": " + ptsB);
         vezDe.setText("VEZ DE: " + jogoReversi.getJogadorAtual().getNome().toUpperCase());
         
-        // Atualiza o rácio de preenchimento do tabuleiro.
         barraProgresso.setProgress((ptsP + ptsB) / 64.0);
     }
 
-    /**
-     * Exibe uma caixa de diálogo com o resultado final da partida.
-     */
     private void anunciarVencedor() {
         Alert aviso = new Alert(AlertType.INFORMATION);
         aviso.setTitle("Fim da Partida");
@@ -265,8 +253,18 @@ public class App extends Application {
     }
 
     /**
-     * Guarda o estado atual da partida num ficheiro.
+     * NOVO MÉTODO: Recebe a jogada da rede e aplica-a no tabuleiro local.
      */
+    public void processarJogadaAdversario(int c, int l) {
+        boolean jogadaValida = jogoReversi.jogar(c, l);
+        if (jogadaValida) {
+            atualizarTabuleiroVisual();
+            if (!jogoReversi.isJogoAtivo()) {
+                anunciarVencedor();
+            }
+        }
+    }
+
     private void gravarJogo() {
         try (FileOutputStream fos = new FileOutputStream("reversi_save.dat");
              ObjectOutputStream oos = new ObjectOutputStream(fos)) {
@@ -288,9 +286,6 @@ public class App extends Application {
         }
     }
 
-    /**
-     * Carrega o estado da partida a partir de um ficheiro.
-     */
     private void carregarJogo() {
         try (FileInputStream fis = new FileInputStream("reversi_save.dat");
              ObjectInputStream ois = new ObjectInputStream(fis)) {
