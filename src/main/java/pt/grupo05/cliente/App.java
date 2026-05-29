@@ -1,6 +1,7 @@
 package pt.grupo05.cliente;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -35,26 +36,26 @@ import java.util.Optional;
 
 public class App extends Application {
 
-    // Instância principal da lógica do jogo.
+    // Lógica do jogo.
     private Jogo jogoReversi = new Jogo(); 
-    // Grelha visual para representação do tabuleiro.
+    // Grelha visual.
     private GridPane tabuleiroVisual; 
     
-    // Gestor de comunicação em rede (Sockets).
+    // Gestor de comunicação.
     private GestorRede gestorRede;
     
-    // Etiquetas de texto para o painel lateral.
+    // Elementos da interface.
     private Label vezDe;
     private Label lPretas;
     private Label lBrancas;
-    
-    // Barra de progresso para ocupação das 64 casas.
     private ProgressBar barraProgresso;
+    
+    // NOVO: Etiqueta para as mensagens de estado.
+    private Label lblMensagens;
 
     @Override
     public void start(Stage stage) {
         // --- MENU INICIAL (JANELA DE CONEXÃO) ---
-        
         Dialog<String[]> dialog = new Dialog<>();
         dialog.setTitle("REVERSI — Ligar ao Servidor");
         dialog.setHeaderText("Configuração de Rede Local");
@@ -70,11 +71,9 @@ public class App extends Application {
         TextField txtNome = new TextField();
         txtNome.setPromptText("ex: rodrigo");
         
-        TextField txtIp = new TextField();
-        txtIp.setPromptText("ex: 192.168.1.10 (ou localhost)");
-        
-        TextField txtPorta = new TextField();
-        txtPorta.setPromptText("ex: 8080");
+        // Campos preenchidos por defeito para facilitar testes
+        TextField txtIp = new TextField("localhost"); 
+        TextField txtPorta = new TextField("8080"); 
 
         gridDialogo.add(new Label("Nome do jogador:"), 0, 0);
         gridDialogo.add(txtNome, 1, 0);
@@ -89,29 +88,32 @@ public class App extends Application {
             if (dialogButton == btnLigar) {
                 return new String[]{txtNome.getText(), txtIp.getText(), txtPorta.getText()};
             }
-            return null;
+            return null; // Resolve o problema do crash ao fechar a janela
         });
-
+        
         Optional<String[]> resultado = dialog.showAndWait();
         if (resultado.isPresent()) {
             String nome = resultado.get()[0];
             String ip = resultado.get()[1];
-            // Converte a porta de String para número inteiro
-            int porta = Integer.parseInt(resultado.get()[2]); 
+            
+            // Proteção contra crashes na conversão da porta
+            int porta = 8080;
+            try {
+                porta = Integer.parseInt(resultado.get()[2]); 
+            } catch (NumberFormatException e) {
+                System.out.println("Porta inválida inserida. A usar a porta 8080 por segurança.");
+            }
             
             jogoReversi.getJogador1().setNome(nome + " (P1)");
             jogoReversi.getJogador2().setNome("Adversário (P2)");
             
-            // Inicia o gestor de rede com os dados introduzidos!
             gestorRede = new GestorRede(this);
             gestorRede.iniciarConexao(ip, porta);
-            
         } else {
             System.exit(0);
         }
 
         // --- CONFIGURAÇÃO DA INTERFACE PRINCIPAL ---
-        
         HBox layoutPrincipal = new HBox(40); 
         layoutPrincipal.setPadding(new Insets(30));
         layoutPrincipal.setAlignment(Pos.CENTER);
@@ -124,12 +126,10 @@ public class App extends Application {
         for (int linha = 0; linha < 8; linha++) {
             for (int coluna = 0; coluna < 8; coluna++) {
                 StackPane casa = new StackPane();
-                
                 Rectangle fundo = new Rectangle(60, 60);
                 fundo.setFill(corCasa);
                 fundo.setStroke(corLinha);
                 fundo.setStrokeWidth(2); 
-                
                 casa.getChildren().add(fundo);
 
                 final int l = linha;
@@ -138,9 +138,9 @@ public class App extends Application {
                 casa.setOnMouseClicked(evento -> {
                     boolean jogadaValida = jogoReversi.jogar(c, l);
                     if (jogadaValida) {
+                        atualizarMensagem("✅ Jogada válida efetuada.");
                         atualizarTabuleiroVisual();
                         
-                        // Envia a jogada válida para o adversário pela rede!
                         if (gestorRede != null) {
                             gestorRede.enviarJogada(c, l);
                         }
@@ -149,7 +149,7 @@ public class App extends Application {
                             anunciarVencedor();
                         }
                     } else {
-                        System.out.println("Jogada inválida!");
+                        atualizarMensagem("❌ Jogada inválida — escolhe outra casa.");
                     }
                 });
 
@@ -157,7 +157,7 @@ public class App extends Application {
             }
         }
 
-        VBox painelInfo = new VBox(30);
+        VBox painelInfo = new VBox(20);
         painelInfo.setAlignment(Pos.TOP_CENTER);
         painelInfo.setMinWidth(250);
 
@@ -167,32 +167,60 @@ public class App extends Application {
         vezDe = new Label("VEZ DE: "); 
         vezDe.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 16px; -fx-font-weight: bold;");
 
-        VBox boxPontos = new VBox(15);
+        VBox boxPontos = new VBox(10);
         boxPontos.setAlignment(Pos.CENTER);
-        boxPontos.setStyle("-fx-background-color: #3c3f41; -fx-padding: 20; -fx-background-radius: 15;");
-
+        boxPontos.setStyle("-fx-background-color: #3c3f41; -fx-padding: 15; -fx-background-radius: 10;");
         lPretas = new Label();
         lBrancas = new Label();
         lPretas.setStyle("-fx-text-fill: white; -fx-font-size: 16px;");
         lBrancas.setStyle("-fx-text-fill: white; -fx-font-size: 16px;");
-
         boxPontos.getChildren().addAll(lPretas, lBrancas);
 
         barraProgresso = new ProgressBar(0);
         barraProgresso.setPrefWidth(200);
         barraProgresso.setStyle("-fx-accent: #27ae60; -fx-control-inner-background: #3c3f41;");
 
-        Button btnGravar = new Button("Gravar Jogo");
+        // NOVO: Área de mensagens de estado
+        lblMensagens = new Label("▶ Jogo iniciado.");
+        lblMensagens.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-background-color: #444; -fx-padding: 10; -fx-background-radius: 5;");
+        lblMensagens.setWrapText(true);
+        lblMensagens.setPrefWidth(200);
+
+        // Agrupa os botões de ação do jogo
+        VBox boxBotoes = new VBox(10);
+        
+        Button btnNovoJogo = new Button("▶ Novo Jogo");
+        btnNovoJogo.setMaxWidth(Double.MAX_VALUE);
+        btnNovoJogo.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnNovoJogo.setOnAction(e -> iniciarNovoJogo());
+
+        Button btnReiniciar = new Button("↺ Reiniciar");
+        btnReiniciar.setMaxWidth(Double.MAX_VALUE);
+        btnReiniciar.setStyle("-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnReiniciar.setOnAction(e -> pedirConfirmacaoReiniciar());
+
+        Button btnTerminar = new Button("✕ Terminar");
+        btnTerminar.setMaxWidth(Double.MAX_VALUE);
+        btnTerminar.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnTerminar.setOnAction(e -> pedirConfirmacaoTerminar());
+
+        // Botões antigos de ficheiro
+        HBox boxFicheiros = new HBox(10);
+        Button btnGravar = new Button("Gravar");
         btnGravar.setMaxWidth(Double.MAX_VALUE);
-        btnGravar.setStyle("-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnGravar.setStyle("-fx-background-color: #2980b9; -fx-text-fill: white;");
         btnGravar.setOnAction(evento -> gravarJogo());
-
-        Button btnCarregar = new Button("Carregar Jogo");
+        
+        Button btnCarregar = new Button("Carregar");
         btnCarregar.setMaxWidth(Double.MAX_VALUE);
-        btnCarregar.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnCarregar.setStyle("-fx-background-color: #8e44ad; -fx-text-fill: white;");
         btnCarregar.setOnAction(evento -> carregarJogo());
+        boxFicheiros.getChildren().addAll(btnGravar, btnCarregar);
+        boxFicheiros.setAlignment(Pos.CENTER);
 
-        painelInfo.getChildren().addAll(titulo, vezDe, boxPontos, barraProgresso, btnGravar, btnCarregar);
+        boxBotoes.getChildren().addAll(btnNovoJogo, btnReiniciar, btnTerminar, boxFicheiros);
+
+        painelInfo.getChildren().addAll(titulo, vezDe, boxPontos, barraProgresso, lblMensagens, boxBotoes);
         layoutPrincipal.getChildren().addAll(tabuleiroVisual, painelInfo);
 
         Scene cena = new Scene(layoutPrincipal);
@@ -202,6 +230,13 @@ public class App extends Application {
         
         atualizarTabuleiroVisual();
         stage.show();
+    }
+
+    /**
+     * Atualiza o texto da área de mensagens.
+     */
+    private void atualizarMensagem(String msg) {
+        lblMensagens.setText(msg);
     }
 
     private void atualizarTabuleiroVisual() {
@@ -236,6 +271,53 @@ public class App extends Application {
         barraProgresso.setProgress((ptsP + ptsB) / 64.0);
     }
 
+    /**
+     * Confirmação antes de reiniciar a partida atual.
+     */
+    private void pedirConfirmacaoReiniciar() {
+        Alert alerta = new Alert(AlertType.CONFIRMATION);
+        alerta.setTitle("Reiniciar Jogo");
+        alerta.setHeaderText("Tens a certeza que queres reiniciar?");
+        alerta.setContentText("O progresso atual será perdido.");
+
+        Optional<ButtonType> resposta = alerta.showAndWait();
+        if (resposta.isPresent() && resposta.get() == ButtonType.OK) {
+            iniciarNovoJogo();
+            atualizarMensagem("↺ O jogo foi reiniciado.");
+        }
+    }
+
+    /**
+     * Confirmação antes de encerrar o programa.
+     */
+    private void pedirConfirmacaoTerminar() {
+        Alert alerta = new Alert(AlertType.CONFIRMATION);
+        alerta.setTitle("Terminar Aplicação");
+        alerta.setHeaderText("Tens a certeza que queres sair?");
+
+        Optional<ButtonType> resposta = alerta.showAndWait();
+        if (resposta.isPresent() && resposta.get() == ButtonType.OK) {
+            Platform.exit(); // Encerra a aplicação de forma limpa.
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Repõe o estado inicial do jogo.
+     */
+    private void iniciarNovoJogo() {
+        // Mantém os nomes atuais, mas cria uma nova instância da lógica.
+        String nome1 = jogoReversi.getJogador1().getNome();
+        String nome2 = jogoReversi.getJogador2().getNome();
+        
+        jogoReversi = new Jogo();
+        jogoReversi.getJogador1().setNome(nome1);
+        jogoReversi.getJogador2().setNome(nome2);
+        
+        atualizarTabuleiroVisual();
+        atualizarMensagem("▶ Novo jogo iniciado. Vez das pretas.");
+    }
+
     private void anunciarVencedor() {
         Alert aviso = new Alert(AlertType.INFORMATION);
         aviso.setTitle("Fim da Partida");
@@ -245,19 +327,19 @@ public class App extends Application {
         
         if (vencedor != null) {
             aviso.setContentText("Vitória de " + vencedor.getNome() + " com " + vencedor.getPontuacao() + " peças!");
+            atualizarMensagem("🏆 Fim do jogo! Vitória de " + vencedor.getNome());
         } else {
             aviso.setContentText("A partida terminou em empate!");
+            atualizarMensagem("🤝 Fim do jogo! Empate.");
         }
         
         aviso.showAndWait();
     }
 
-    /**
-     * NOVO MÉTODO: Recebe a jogada da rede e aplica-a no tabuleiro local.
-     */
     public void processarJogadaAdversario(int c, int l) {
         boolean jogadaValida = jogoReversi.jogar(c, l);
         if (jogadaValida) {
+            atualizarMensagem("✅ O adversário jogou.");
             atualizarTabuleiroVisual();
             if (!jogoReversi.isJogoAtivo()) {
                 anunciarVencedor();
@@ -270,19 +352,10 @@ public class App extends Application {
              ObjectOutputStream oos = new ObjectOutputStream(fos)) {
              
             oos.writeObject(jogoReversi);
-            
-            Alert aviso = new Alert(AlertType.INFORMATION);
-            aviso.setTitle("Gravação");
-            aviso.setHeaderText("Sucesso!");
-            aviso.setContentText("A partida foi gravada corretamente.");
-            aviso.showAndWait();
+            atualizarMensagem("💾 Jogo gravado com sucesso.");
             
         } catch (IOException e) {
-            Alert erro = new Alert(AlertType.ERROR);
-            erro.setTitle("Erro de Gravação");
-            erro.setHeaderText("Não foi possível gravar o jogo.");
-            erro.setContentText(e.getMessage());
-            erro.showAndWait();
+            atualizarMensagem("❌ Erro ao gravar jogo.");
         }
     }
 
@@ -292,19 +365,10 @@ public class App extends Application {
              
             jogoReversi = (Jogo) ois.readObject();
             atualizarTabuleiroVisual();
-            
-            Alert aviso = new Alert(AlertType.INFORMATION);
-            aviso.setTitle("Carregamento");
-            aviso.setHeaderText("Sucesso!");
-            aviso.setContentText("A partida foi retomada.");
-            aviso.showAndWait();
+            atualizarMensagem("📂 Jogo carregado com sucesso.");
             
         } catch (Exception e) {
-            Alert erro = new Alert(AlertType.ERROR);
-            erro.setTitle("Erro de Carregamento");
-            erro.setHeaderText("Não foi possível carregar o jogo.");
-            erro.setContentText("Certifica-te que gravaste um jogo primeiro.");
-            erro.showAndWait();
+            atualizarMensagem("❌ Erro ao carregar jogo.");
         }
     }
 
