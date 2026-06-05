@@ -20,10 +20,13 @@ public class GestorRede {
         this.appPrincipal = app;
     }
 
+    /**
+     * Inicia a escuta da porta ou liga-se a um servidor existente.
+     */
     public void iniciarConexao(String ip, int porta) {
         new Thread(() -> {
             try {
-                // Limpa espaços em branco que tenham sido digitados sem querer
+                // Limpa os espaços acidentais no IP inserido.
                 String ipLimpo = ip.trim(); 
                 
                 Platform.runLater(() -> appPrincipal.atualizarMensagem("A tentar ligar a " + ipLimpo + "..."));
@@ -31,6 +34,7 @@ public class GestorRede {
                 Platform.runLater(() -> appPrincipal.atualizarMensagem("🟢 Ligado ao adversário como CLIENTE!"));
             } catch (Exception e) {
                 try {
+                    // Modo de servidor, fica à espera da ligação.
                     Platform.runLater(() -> appPrincipal.atualizarMensagem("🟡 A aguardar que o adversário se ligue..."));
                     ServerSocket serverSocket = new ServerSocket(porta);
                     socket = serverSocket.accept(); 
@@ -42,6 +46,7 @@ public class GestorRede {
             }
 
             try {
+                // Configura os canais de entrada e saída.
                 saida = new ObjectOutputStream(socket.getOutputStream());
                 entrada = new ObjectInputStream(socket.getInputStream());
                 ouvirRede();
@@ -51,9 +56,13 @@ public class GestorRede {
         }).start();
     }
 
+    /**
+     * Processa a entrada contínua de dados pela rede.
+     */
     private void ouvirRede() {
         while (true) {
             try {
+                // Lê as coordenadas jogadas pelo adversário.
                 int[] jogada = (int[]) entrada.readObject();
                 int c = jogada[0];
                 int l = jogada[1];
@@ -62,12 +71,16 @@ public class GestorRede {
                     appPrincipal.processarJogadaAdversario(c, l);
                 });
             } catch (Exception e) {
-                Platform.runLater(() -> appPrincipal.atualizarMensagem("🔴 O adversário saiu do jogo."));
+                // Notifica a janela principal da desistência do adversário.
+                Platform.runLater(() -> appPrincipal.adversarioDesistiu());
                 break; 
             }
         }
     }
 
+    /**
+     * Emite a jogada local para a stream da rede.
+     */
     public void enviarJogada(int c, int l) {
         if (saida != null) {
             try {
