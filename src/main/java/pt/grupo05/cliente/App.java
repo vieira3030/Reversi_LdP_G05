@@ -245,6 +245,7 @@ public class App extends Application {
         stage.setTitle("Reversi - Grupo 05");
         stage.setScene(cena);
         stage.setResizable(false); 
+        stage.setOnCloseRequest(e -> System.exit(0));
         
         atualizarTabuleiroVisual();
         stage.show();
