@@ -11,95 +11,71 @@ import javafx.application.Platform;
  */
 public class GestorRede {
 
-    // Canal de comunicação principal.
     private Socket socket;
-    
-    // Canais de envio e receção de dados.
     private ObjectOutputStream saida;
     private ObjectInputStream entrada;
-    
-    // Referência à interface gráfica para a podermos atualizar.
     private App appPrincipal; 
 
-    /**
-     * Inicializa o gestor com a referência à App.
-     */
     public GestorRede(App app) {
         this.appPrincipal = app;
     }
 
-    /**
-     * Tenta ligar como cliente. Se falhar, inicia como servidor.
-     * Utiliza uma Thread para não bloquear o ecrã do jogo.
-     */
     public void iniciarConexao(String ip, int porta) {
         new Thread(() -> {
             try {
-                // Tenta ligar ao IP fornecido (modo Cliente).
-                System.out.println("A tentar ligar ao IP: " + ip);
-                socket = new Socket(ip, porta);
-                System.out.println("Ligado com sucesso como CLIENTE.");
+                // Limpa espaços em branco que tenham sido digitados sem querer
+                String ipLimpo = ip.trim(); 
+                
+                Platform.runLater(() -> appPrincipal.atualizarMensagem("A tentar ligar a " + ipLimpo + "..."));
+                socket = new Socket(ipLimpo, porta);
+                Platform.runLater(() -> appPrincipal.atualizarMensagem("🟢 Ligado ao adversário como CLIENTE!"));
             } catch (Exception e) {
-                // Se falhar, cria o seu próprio servidor (modo Servidor).
                 try {
-                    System.out.println("Nenhum servidor encontrado. A iniciar como SERVIDOR na porta " + porta + "...");
+                    Platform.runLater(() -> appPrincipal.atualizarMensagem("🟡 A aguardar que o adversário se ligue..."));
                     ServerSocket serverSocket = new ServerSocket(porta);
-                    
-                    // Fica à espera que o adversário se ligue.
                     socket = serverSocket.accept(); 
-                    System.out.println("Adversário ligou-se! Ligado como SERVIDOR.");
+                    Platform.runLater(() -> appPrincipal.atualizarMensagem("🟢 Adversário ligou-se! (SERVIDOR)"));
                 } catch (Exception ex) {
-                    System.out.println("Erro ao iniciar servidor: " + ex.getMessage());
+                    Platform.runLater(() -> appPrincipal.atualizarMensagem("🔴 Erro de rede. Tenta reiniciar."));
                     return;
                 }
             }
 
             try {
-                // Configura os canais de envio e receção (a saída tem de ser sempre a primeira a iniciar).
                 saida = new ObjectOutputStream(socket.getOutputStream());
                 entrada = new ObjectInputStream(socket.getInputStream());
-                
-                // Inicia o ciclo de escuta contínua.
                 ouvirRede();
             } catch (Exception e) {
-                System.out.println("Erro a configurar as streams de rede: " + e.getMessage());
+                Platform.runLater(() -> appPrincipal.atualizarMensagem("🔴 A ligação caiu."));
             }
         }).start();
     }
 
-    /**
-     * Fica constantemente à espera de receber as coordenadas do adversário.
-     */
     private void ouvirRede() {
         while (true) {
             try {
-                // Recebe as coordenadas da jogada num array de inteiros.
                 int[] jogada = (int[]) entrada.readObject();
                 int c = jogada[0];
                 int l = jogada[1];
 
-                // Atualiza o tabuleiro visual no ecrã (obrigatoriamente via Platform.runLater).
                 Platform.runLater(() -> {
                     appPrincipal.processarJogadaAdversario(c, l);
                 });
             } catch (Exception e) {
-                System.out.println("A ligação de rede foi perdida.");
-                break; // Sai do ciclo se a ligação cair.
+                Platform.runLater(() -> appPrincipal.atualizarMensagem("🔴 O adversário saiu do jogo."));
+                break; 
             }
         }
     }
 
-    /**
-     * Envia a jogada feita localmente para o adversário.
-     */
     public void enviarJogada(int c, int l) {
         if (saida != null) {
             try {
                 int[] jogada = {c, l};
                 saida.writeObject(jogada);
-                saida.flush(); // Garante que os dados são enviados imediatamente.
+                saida.flush(); 
             } catch (Exception e) {
-                System.out.println("Erro ao enviar a jogada pela rede.");
+                Platform.runLater(() -> appPrincipal.atualizarMensagem("🔴 Erro ao enviar a jogada."));
             }
         }
     }
