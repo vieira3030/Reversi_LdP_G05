@@ -50,7 +50,7 @@ public class App extends Application {
     private Label lBrancas;
     private ProgressBar barraProgresso;
     
-    // NOVO: Etiqueta para as mensagens de estado.
+    // Etiqueta para as mensagens de estado.
     private Label lblMensagens;
 
     @Override
@@ -180,7 +180,7 @@ public class App extends Application {
         barraProgresso.setPrefWidth(200);
         barraProgresso.setStyle("-fx-accent: #27ae60; -fx-control-inner-background: #3c3f41;");
 
-        // NOVO: Área de mensagens de estado
+        // Área de mensagens de estado
         lblMensagens = new Label("▶ Jogo iniciado.");
         lblMensagens.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-background-color: #444; -fx-padding: 10; -fx-background-radius: 5;");
         lblMensagens.setWrapText(true);
@@ -235,7 +235,7 @@ public class App extends Application {
     /**
      * Atualiza o texto da área de mensagens.
      */
-    private void atualizarMensagem(String msg) {
+    public void atualizarMensagem(String msg) {
         lblMensagens.setText(msg);
     }
 
