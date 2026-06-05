@@ -39,12 +39,14 @@ public class App extends Application {
 
     // Lógica principal do jogo.
     private Jogo jogoReversi = new Jogo(); 
-    
     // Grelha visual do tabuleiro.
     private GridPane tabuleiroVisual; 
-    
     // Gestor da ligação por Sockets.
     private GestorRede gestorRede;
+    
+    // Identidade do jogador local (para controlo de turnos).
+    private String meuNome;
+    private CorPeca minhaCor;
     
     // Elementos visuais atualizáveis.
     private Label vezDe;
@@ -52,6 +54,27 @@ public class App extends Application {
     private Label lBrancas;
     private ProgressBar barraProgresso;
     private Label lblMensagens;
+
+    // Devolve o nome do jogador para a rede partilhar.
+    public String getMeuNome() {
+        return meuNome;
+    }
+
+    // Configura as cores e nomes consoante a ligação de rede.
+    public void configurarPartida(boolean isServidor, String nomeAdversario) {
+        if (isServidor) {
+            minhaCor = CorPeca.PRETO;
+            jogoReversi.getJogador1().setNome(meuNome); 
+            jogoReversi.getJogador2().setNome(nomeAdversario); 
+            atualizarMensagem("🟢 Tu és as Pretas (começas tu)!");
+        } else {
+            minhaCor = CorPeca.BRANCO;
+            jogoReversi.getJogador1().setNome(nomeAdversario); 
+            jogoReversi.getJogador2().setNome(meuNome); 
+            atualizarMensagem("🟢 Tu és as Brancas (espera pelo adversário)!");
+        }
+        atualizarTabuleiroVisual();
+    }
 
     @Override
     public void start(Stage stage) {
@@ -70,7 +93,6 @@ public class App extends Application {
 
         TextField txtNome = new TextField();
         txtNome.setPromptText("ex: rodrigo");
-        
         TextField txtIp = new TextField("localhost"); 
         TextField txtPorta = new TextField("8080"); 
 
@@ -93,7 +115,7 @@ public class App extends Application {
         
         Optional<String[]> resultado = dialog.showAndWait();
         if (resultado.isPresent()) {
-            String nome = resultado.get()[0];
+            this.meuNome = resultado.get()[0]; // Guarda o nome do jogador local.
             String ip = resultado.get()[1];
             
             int porta = 8080;
@@ -103,14 +125,14 @@ public class App extends Application {
                 System.out.println("Porta inválida. Assumida a 8080.");
             }
             
-            // Grava os nomes dos jogadores para exibição limpa.
-            jogoReversi.getJogador1().setNome(nome);
-            jogoReversi.getJogador2().setNome("Adversário");
+            // Define nomes temporários enquanto a rede não sincroniza.
+            jogoReversi.getJogador1().setNome(meuNome);
+            jogoReversi.getJogador2().setNome("A procurar...");
             
             gestorRede = new GestorRede(this);
             gestorRede.iniciarConexao(ip, porta);
         } else {
-            System.exit(0); // Fecha se o utilizador cancelar.
+            System.exit(0); 
         }
 
         HBox layoutPrincipal = new HBox(40); 
@@ -137,9 +159,15 @@ public class App extends Application {
 
                 // Evento de clique para efetuar jogada.
                 casa.setOnMouseClicked(evento -> {
+                    // Bloqueia jogadas fora do turno ou antes da ligação.
+                    if (minhaCor == null || jogoReversi.getJogadorAtual().getCor() != minhaCor) {
+                        atualizarMensagem("✋ Não é a tua vez! Espera pelo adversário.");
+                        return;
+                    }
+
                     boolean jogadaValida = jogoReversi.jogar(c, l);
                     if (jogadaValida) {
-                        atualizarMensagem("✅ Jogada válida efetuada.");
+                        atualizarMensagem("✅ Jogada enviada!");
                         atualizarTabuleiroVisual();
                         
                         if (gestorRede != null) {
@@ -194,7 +222,7 @@ public class App extends Application {
         
         boxPontos.getChildren().addAll(linhaPretas, linhaBrancas);
 
-        lblMensagens = new Label("▶ A aguardar que o adversário se ligue...");
+        lblMensagens = new Label("▶ A aguardar ligação da rede...");
         lblMensagens.setStyle("-fx-text-fill: white; -fx-font-size: 13px; -fx-background-color: #444; -fx-padding: 12; -fx-background-radius: 5; -fx-border-color: #555;");
         lblMensagens.setMaxWidth(Double.MAX_VALUE);
 
@@ -202,13 +230,13 @@ public class App extends Application {
         barraProgresso.setMaxWidth(Double.MAX_VALUE);
         barraProgresso.setStyle("-fx-accent: #1a5276; -fx-control-inner-background: #444; -fx-border-color: #555; -fx-border-width: 1;");
 
-        // Botão Novo Jogo com cor amarela.
+        // Botão Novo Jogo.
         Button btnNovoJogo = new Button("▶ Novo Jogo");
         btnNovoJogo.setMaxWidth(Double.MAX_VALUE);
         btnNovoJogo.setStyle("-fx-background-color: #f1c40f; -fx-text-fill: black; -fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 12;");
         btnNovoJogo.setOnAction(e -> iniciarNovoJogo());
 
-        // Botões de Reiniciar e Terminar equilibrados lado a lado.
+        // Botões de Ação.
         HBox boxBotoesAcao = new HBox(10);
         Button btnReiniciar = new Button("↺ Reiniciar");
         btnReiniciar.setMaxWidth(Double.MAX_VALUE);
@@ -223,7 +251,7 @@ public class App extends Application {
         btnTerminar.setOnAction(e -> pedirConfirmacaoTerminar());
         boxBotoesAcao.getChildren().addAll(btnReiniciar, btnTerminar);
 
-        // Botões de Ficheiro com cor roxa e texto branco para melhor contraste.
+        // Botões de Ficheiro.
         HBox boxFicheiros = new HBox(10);
         Button btnGravar = new Button("Gravar");
         btnGravar.setMaxWidth(Double.MAX_VALUE);
@@ -245,6 +273,8 @@ public class App extends Application {
         stage.setTitle("Reversi - Grupo 05");
         stage.setScene(cena);
         stage.setResizable(false); 
+        
+        // Termina completamente o programa ao clicar no X.
         stage.setOnCloseRequest(e -> System.exit(0));
         
         atualizarTabuleiroVisual();
@@ -289,13 +319,19 @@ public class App extends Application {
         lPretas.setText("Pretas (" + nomeP + "): " + ptsP);
         lBrancas.setText("Brancas (" + nomeB + "): " + ptsB);
         
-        // Verifica se é a vez do jogador local (Jogador 1).
-        if (jogoReversi.getJogadorAtual() == jogoReversi.getJogador1()) {
-            vezDe.setText("É A TUA VEZ");
-            vezDe.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 16px; -fx-font-weight: bold;"); 
+        // Define dinamicamente o texto e a cor da caixa de turnos.
+        if (minhaCor != null) {
+            if (jogoReversi.getJogadorAtual().getCor() == minhaCor) {
+                vezDe.setText("É A TUA VEZ");
+                vezDe.setStyle("-fx-text-fill: #f1c40f; -fx-font-size: 16px; -fx-font-weight: bold;"); 
+            } else {
+                vezDe.setText("VEZ DO ADVERSÁRIO");
+                vezDe.setStyle("-fx-text-fill: #ecf0f1; -fx-font-size: 16px; -fx-font-weight: bold;"); 
+            }
         } else {
-            vezDe.setText("VEZ DO ADVERSÁRIO");
-            vezDe.setStyle("-fx-text-fill: #ecf0f1; -fx-font-size: 16px; -fx-font-weight: bold;"); 
+            // Mensagem provisória enquanto os jogadores não se conectam.
+            vezDe.setText("A AGUARDAR LIGAÇÃO...");
+            vezDe.setStyle("-fx-text-fill: #bdc3c7; -fx-font-size: 16px; -fx-font-weight: bold;"); 
         }
         
         barraProgresso.setProgress((ptsP + ptsB) / 64.0);
@@ -344,9 +380,7 @@ public class App extends Application {
         jogoReversi.getJogador2().setNome(nome2);
         
         tabuleiroVisual.setDisable(false);
-        
         atualizarTabuleiroVisual();
-        atualizarMensagem("▶ Novo jogo iniciado. Vez das pretas.");
     }
 
     /**
@@ -399,15 +433,13 @@ public class App extends Application {
     }
 
     /**
-     * Guarda o estado atual da partida.
+     * Guarda o estado atual da partida num ficheiro.
      */
     private void gravarJogo() {
         try (FileOutputStream fos = new FileOutputStream("reversi_save.dat");
              ObjectOutputStream oos = new ObjectOutputStream(fos)) {
-             
             oos.writeObject(jogoReversi);
             atualizarMensagem("💾 Jogo gravado com sucesso.");
-            
         } catch (IOException e) {
             atualizarMensagem("❌ Erro ao gravar jogo.");
         }
@@ -419,11 +451,9 @@ public class App extends Application {
     private void carregarJogo() {
         try (FileInputStream fis = new FileInputStream("reversi_save.dat");
              ObjectInputStream ois = new ObjectInputStream(fis)) {
-             
             jogoReversi = (Jogo) ois.readObject();
             atualizarTabuleiroVisual();
             atualizarMensagem("📂 Jogo carregado com sucesso.");
-            
         } catch (Exception e) {
             atualizarMensagem("❌ Erro ao carregar jogo.");
         }
