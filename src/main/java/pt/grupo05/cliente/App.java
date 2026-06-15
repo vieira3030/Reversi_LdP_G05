@@ -35,6 +35,9 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
 import java.util.Optional;
 
+/**
+ * Classe principal da interface gráfica da aplicação.
+ */
 public class App extends Application {
 
     // Lógica principal do jogo.
@@ -230,11 +233,16 @@ public class App extends Application {
         barraProgresso.setMaxWidth(Double.MAX_VALUE);
         barraProgresso.setStyle("-fx-accent: #1a5276; -fx-control-inner-background: #444; -fx-border-color: #555; -fx-border-width: 1;");
 
-        // Botão Novo Jogo.
+        // Botão Novo Jogo (Notifica o adversário com o código -1).
         Button btnNovoJogo = new Button("▶ Novo Jogo");
         btnNovoJogo.setMaxWidth(Double.MAX_VALUE);
         btnNovoJogo.setStyle("-fx-background-color: #f1c40f; -fx-text-fill: black; -fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 12;");
-        btnNovoJogo.setOnAction(e -> iniciarNovoJogo());
+        btnNovoJogo.setOnAction(e -> {
+            iniciarNovoJogo();
+            if (gestorRede != null) {
+                gestorRede.enviarJogada(-1, -1);
+            }
+        });
 
         // Botões de Ação.
         HBox boxBotoesAcao = new HBox(10);
@@ -263,7 +271,12 @@ public class App extends Application {
         btnCarregar.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnCarregar, Priority.ALWAYS); 
         btnCarregar.setStyle("-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
-        btnCarregar.setOnAction(evento -> carregarJogo());
+        btnCarregar.setOnAction(evento -> {
+            carregarJogo();
+            if (gestorRede != null) {
+                gestorRede.enviarJogada(-2, -2);
+            }
+        });
         boxFicheiros.getChildren().addAll(btnGravar, btnCarregar);
 
         painelInfo.getChildren().addAll(boxTitulo, boxVez, boxPontos, lblMensagens, barraProgresso, btnNovoJogo, boxBotoesAcao, boxFicheiros);
@@ -274,7 +287,6 @@ public class App extends Application {
         stage.setScene(cena);
         stage.setResizable(false); 
         
-        // Termina completamente o programa ao clicar no X.
         stage.setOnCloseRequest(e -> System.exit(0));
         
         atualizarTabuleiroVisual();
@@ -289,7 +301,7 @@ public class App extends Application {
     }
 
     /**
-     * Atualiza os elementos visuais com base no estado lógico do jogo.
+     * Redesenha as peças e atualiza as pontuações no ecrã.
      */
     private void atualizarTabuleiroVisual() {
         for (Node node : tabuleiroVisual.getChildren()) {
@@ -338,7 +350,7 @@ public class App extends Application {
     }
 
     /**
-     * Pede confirmação antes de repor o estado inicial do jogo.
+     * Pede confirmação local e avisa a rede em caso de reinício.
      */
     private void pedirConfirmacaoReiniciar() {
         Alert alerta = new Alert(AlertType.CONFIRMATION);
@@ -350,6 +362,9 @@ public class App extends Application {
         if (resposta.isPresent() && resposta.get() == ButtonType.OK) {
             iniciarNovoJogo();
             atualizarMensagem("↺ O jogo foi reiniciado.");
+            if (gestorRede != null) {
+                gestorRede.enviarJogada(-1, -1);
+            }
         }
     }
 
@@ -405,9 +420,26 @@ public class App extends Application {
     }
 
     /**
-     * Sincroniza a jogada que chegou da rede.
+     * Sincroniza a jogada ou interceta comandos especiais enviados via rede.
+     * @param c coluna da jogada ou sinal de controlo
+     * @param l linha da jogada ou sinal de controlo
      */
     public void processarJogadaAdversario(int c, int l) {
+        // Interceta sinal para reiniciar o tabuleiro (-1, -1)
+        if (c == -1 && l == -1) {
+            iniciarNovoJogo();
+            atualizarMensagem("🔄 O adversário reiniciou o jogo.");
+            return;
+        }
+
+        // Interceta sinal para carregar ficheiro local (-2, -2)
+        if (c == -2 && l == -2) {
+            carregarJogo();
+            atualizarMensagem("📂 O adversário carregou uma gravação.");
+            return;
+        }
+
+        // Processamento normal de jogada de peça
         boolean jogadaValida = jogoReversi.jogar(c, l);
         if (jogadaValida) {
             atualizarMensagem("✅ O adversário jogou.");
@@ -458,7 +490,11 @@ public class App extends Application {
             atualizarMensagem("❌ Erro ao carregar jogo.");
         }
     }
-
+    
+    /**
+     * Método principal que arranca a aplicação JavaFX.
+     * @param args argumentos de linha de comandos
+     */
     public static void main(String[] args) {
         launch(args);
     }
