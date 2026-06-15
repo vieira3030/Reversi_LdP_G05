@@ -164,13 +164,13 @@ public class App extends Application {
                 casa.setOnMouseClicked(evento -> {
                     // Bloqueia jogadas fora do turno ou antes da ligação.
                     if (minhaCor == null || jogoReversi.getJogadorAtual().getCor() != minhaCor) {
-                        atualizarMensagem("✋ Não é a tua vez! Espera pelo adversário.");
+                        atualizarMensagem("✋ Calma! Ainda é a vez do teu adversário.");
                         return;
                     }
 
                     boolean jogadaValida = jogoReversi.jogar(c, l);
                     if (jogadaValida) {
-                        atualizarMensagem("✅ Jogada enviada!");
+                        atualizarMensagem("✅ Boa jogada! A aguardar a resposta do adversário...");
                         atualizarTabuleiroVisual();
                         
                         if (gestorRede != null) {
@@ -181,7 +181,7 @@ public class App extends Application {
                             anunciarVencedor();
                         }
                     } else {
-                        atualizarMensagem("❌ Jogada inválida — escolhe outra casa.");
+                        atualizarMensagem("❌ Movimento inválido! Tenta outra posição.");
                     }
                 });
 
@@ -409,10 +409,15 @@ public class App extends Application {
         pt.grupo05.modelo.Jogador vencedor = jogoReversi.getVencedor();
         
         if (vencedor != null) {
-            aviso.setContentText("Vitória de " + vencedor.getNome() + " com " + vencedor.getPontuacao() + " peças!");
-            atualizarMensagem("🏆 Fim do jogo! Vitória de " + vencedor.getNome());
+            if (vencedor.getCor() == minhaCor) {
+                aviso.setContentText("🏆 Parabéns! Esmagaste o adversário com " + vencedor.getPontuacao() + " peças!");
+                atualizarMensagem("🏆 Vitória épica de " + vencedor.getNome() + "!");
+            } else {
+                aviso.setContentText("💀 Derrota! O adversário venceu com " + vencedor.getPontuacao() + " peças. Para a próxima corre melhor!");
+                atualizarMensagem("💀 Foste derrotado por " + vencedor.getNome() + ".");
+            }
         } else {
-            aviso.setContentText("A partida terminou em empate!");
+            aviso.setContentText("🤝 Incrível! O jogo terminou num empate perfeito!");
             atualizarMensagem("🤝 Fim do jogo! Empate.");
         }
         
@@ -442,7 +447,7 @@ public class App extends Application {
         // Processamento normal de jogada de peça
         boolean jogadaValida = jogoReversi.jogar(c, l);
         if (jogadaValida) {
-            atualizarMensagem("✅ O adversário jogou.");
+            atualizarMensagem("🎯 O adversário jogou! Agora é a tua vez.");
             atualizarTabuleiroVisual();
             if (!jogoReversi.isJogoAtivo()) {
                 anunciarVencedor();
@@ -454,13 +459,13 @@ public class App extends Application {
      * Declara vitória se a comunicação cair.
      */
     public void adversarioDesistiu() {
-        atualizarMensagem("🔴 O adversário saiu da partida.");
+        atualizarMensagem("🏃‍♂️💨 O adversário fugiu de medo!");
         tabuleiroVisual.setDisable(true); 
         
         Alert aviso = new Alert(AlertType.INFORMATION);
         aviso.setTitle("Fim por Desistência");
         aviso.setHeaderText("Vitória por Desistência!");
-        aviso.setContentText("O teu adversário abandonou o jogo ou a ligação caiu. Foste declarado o vencedor!");
+        aviso.setContentText("O teu adversário abandonou o jogo ou a ligação caiu. Ganhaste por abandono!");
         aviso.showAndWait();
     }
 
