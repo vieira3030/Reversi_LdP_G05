@@ -319,7 +319,7 @@ public class App extends Application {
                 if (c == null) c = 0;
                 if (l == null) l = 0;
 
-                casa.getChildren().removeIf(filho -> child instanceof Circle);
+                casa.getChildren().removeIf(filho -> filho instanceof Circle);
                 CorPeca estado = jogoReversi.getTabuleiro().getCasa(c, l);
 
                 if (estado == CorPeca.BRANCO) {
